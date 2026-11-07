@@ -1,0 +1,539 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Election night 2026 · Live NZ results tracker</title>
+<meta name="description" content="Live preliminary results for the 2026 New Zealand General Election: seats, majority, and every electorate as it's counted.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗳️</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f3f5f8;--card:#ffffff;--ink:#14213d;--muted:#5b6475;--line:#dde2ea;--soft:#eef1f5;
+  --accent:#2f5bd3;--warn-bg:#fff4d6;--warn:#7a5400;--bad-bg:#fde8e8;--bad:#9b1c1c;--ok-bg:#e3f4ea;--ok:#1d6b3f;
+  --blocA:#3a6fd8;--blocB:#d8673a;color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0f1420;--card:#171e2d;--ink:#e8ecf3;--muted:#9aa4b5;--line:#2a3347;--soft:#1f2738;
+  --accent:#7aa0ff;--warn-bg:#3a2e0e;--warn:#f5cf6b;--bad-bg:#3d1717;--bad:#f3a1a1;--ok-bg:#12321f;--ok:#8fd8ab;
+  --blocA:#6f97ec;--blocB:#ec8f68;color-scheme:dark;
+}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:16px;line-height:1.5;
+  padding:env(safe-area-inset-top,0) env(safe-area-inset-right,0) env(safe-area-inset-bottom,0) env(safe-area-inset-left,0)}
+.wrap{max-width:1180px;margin:0 auto;padding:16px}
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;margin:8px 0 12px}
+h1{font-size:30px;line-height:1.1;margin:0;letter-spacing:-0.01em}
+.sub{color:var(--muted);font-size:15px;margin-top:4px}
+.status{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:14px;color:var(--muted)}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:13px;font-weight:700;background:var(--soft);color:var(--ink)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.live .dot{background:#2fae62;animation:pulse 2s infinite}
+.err{background:var(--bad-bg);color:var(--bad)}
+@keyframes pulse{50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){.live .dot{animation:none}}
+.progress{height:8px;background:var(--soft);border-radius:4px;overflow:hidden;margin:4px 0 14px}
+.progress>div{height:100%;width:0;background:var(--accent);transition:width .6s}
+.headline{font-size:22px;line-height:1.35;margin:0 0 16px;max-width:60ch}
+.grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:16px}
+@media (max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:16px}
+.grid .card{margin-bottom:0}
+h2{font-size:18px;margin:0 0 4px}
+.note{font-size:13px;color:var(--muted)}
+#chamber{width:100%;height:auto;display:block}
+.majtext{text-align:center;font-size:15px;margin-top:-6px}
+.bloc{margin-top:12px}
+.bloc .lab{display:flex;justify-content:space-between;gap:10px;font-size:14px;margin-bottom:4px}
+.bloc .lab>b{white-space:nowrap}
+.bloc .track{position:relative;height:14px;background:var(--soft);border-radius:7px}
+.bloc .fill{height:14px;border-radius:7px;transition:width .6s;width:0}
+.bloc .line{position:absolute;top:-4px;width:2px;height:22px;background:var(--ink)}
+.watch-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;padding:9px 0;border-top:1px solid var(--line);font-size:14px}
+.watch-row .nm{font-weight:700}
+.watch-row .pre{color:var(--muted);font-size:13px}
+.tag{display:inline-block;font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.t-safe{background:var(--ok-bg);color:var(--ok)}
+.t-lean{background:var(--soft);color:var(--ink)}
+.t-close{background:var(--warn-bg);color:var(--warn)}
+.t-wait{background:var(--soft);color:var(--muted)}
+.t-flip{background:var(--bad-bg);color:var(--bad)}
+.score{display:flex;flex-wrap:wrap;gap:10px;font-size:15px;margin:0 0 16px}
+.score span{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:6px 12px}
+.score b{font-size:17px}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th{font-size:13px;color:var(--muted);font-weight:400;text-align:right;padding:6px 6px;border-bottom:1px solid var(--line)}
+th:first-child,td:first-child{text-align:left}
+td{padding:9px 6px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums}
+tr.prow{cursor:pointer}
+tr.prow:hover td{background:var(--soft)}
+.sw{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:8px;vertical-align:-1px}
+.blocbtn{font:inherit;font-size:13px;font-weight:700;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:2px 10px;cursor:pointer;min-width:58px}
+.tiles{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px}
+.tile{width:108px;height:46px;border-radius:7px;font:inherit;font-size:12px;line-height:1.2;padding:4px 6px;text-align:left;cursor:pointer;border:2px solid transparent;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between}
+.tile .tn{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700}
+.tile.close{border:2px dashed var(--ink)}
+.tile:focus-visible,.blocbtn:focus-visible,button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:13px;color:var(--muted);margin-top:8px}
+.legend i{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-2px;margin-right:5px}
+.feed{list-style:none;margin:8px 0 0;padding:0}
+.feed li{padding:8px 0;border-top:1px solid var(--line);font-size:14px}
+.feed time{color:var(--muted);margin-right:8px;font-variant-numeric:tabular-nums}
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0}
+.filters button{font:inherit;font-size:14px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:6px 12px;cursor:pointer}
+.filters button[aria-pressed="true"]{background:var(--ink);color:var(--card);border-color:var(--ink)}
+.filters input{font:inherit;font-size:15px;padding:7px 12px;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--ink);min-width:200px;flex:1;max-width:320px}
+.erow{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.6fr) 90px 110px;gap:10px;align-items:center;padding:10px 4px;border-top:1px solid var(--line);font-size:14px}
+.erow.hl{background:var(--warn-bg)}
+@media (max-width:700px){.erow{grid-template-columns:minmax(0,1fr) auto}.erow .c3{display:none}.erow .c2{grid-column:1 / -1;order:3}}
+.erow .en{font-weight:700}
+.bar{height:6px;background:var(--soft);border-radius:3px;overflow:hidden;margin-top:4px}
+.bar>div{height:100%;background:var(--muted)}
+.second{color:var(--muted);font-size:13px}
+.empty{color:var(--muted);font-size:14px;padding:12px 0}
+footer{color:var(--muted);font-size:13px;line-height:1.6;margin:8px 0 30px}
+footer a{color:inherit}
+.demo-banner{background:var(--warn-bg);color:var(--warn);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-weight:700;font-size:14px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="demoBanner" class="demo-banner" hidden>Demo mode: made-up sample numbers for checking the layout. Not real results.</div>
+
+  <header class="top">
+    <div>
+      <h1>Election night 2026</h1>
+      <div class="sub">Live preliminary results for the New Zealand General Election</div>
+    </div>
+    <div class="status">
+      <span id="pill" class="pill"><span class="dot"></span><span id="pillText">Connecting</span></span>
+      <span id="updated">Waiting for first update</span>
+      <span>Voting places counted: <b id="pct">0%</b></span>
+    </div>
+  </header>
+  <div class="progress" aria-hidden="true"><div id="pbar"></div></div>
+
+  <p id="headline" class="headline" aria-live="polite">Voting closes at 7pm. Results appear here as they're counted.</p>
+
+  <div class="grid">
+    <section class="card" aria-labelledby="hParl">
+      <h2 id="hParl">Parliament, projected from votes counted so far</h2>
+      <svg id="chamber" viewBox="0 0 460 250" role="img" aria-label="Projected seats in Parliament"></svg>
+      <div id="majtext" class="majtext"></div>
+      <div id="blocs"></div>
+      <p class="note" style="margin:10px 0 0">Bloc A starts as the current government parties and Bloc B as the current opposition parties. Tap a party in the table below to change which bloc it's in.</p>
+    </section>
+
+    <section class="card" aria-labelledby="hWatch">
+      <h2 id="hWatch">Seats to watch</h2>
+      <div class="note">Closest races first. "Pre-election" is the margin projected before voting.</div>
+      <div id="watch"></div>
+    </section>
+  </div>
+
+  <div style="height:16px"></div>
+  <div class="score" id="score" aria-label="Electorate summary"></div>
+
+  <section class="card" aria-labelledby="hParty">
+    <h2 id="hParty">Party vote and projected seats</h2>
+    <div style="overflow-x:auto">
+    <table>
+      <thead><tr><th>Party</th><th>Party vote</th><th>Electorates</th><th>List</th><th>Total seats</th><th>Bloc</th></tr></thead>
+      <tbody id="ptable"><tr><td colspan="6" class="empty">Waiting for results.</td></tr></tbody>
+    </table>
+    </div>
+    <p class="note" style="margin:8px 0 0">A party needs 5% of the party vote or an electorate win to get seats. Seats are the Electoral Commission's own projection from votes counted so far.</p>
+  </section>
+
+  <div class="grid">
+    <section class="card" aria-labelledby="hTiles">
+      <h2 id="hTiles">All 71 electorates</h2>
+      <div class="note">Coloured by who's leading. Tap a seat for details.</div>
+      <div class="tiles" id="tiles"></div>
+      <div class="legend"><span><i style="background:var(--ink)"></i>Solid: clear lead</span><span><i style="background:var(--soft);border:1px solid var(--line)"></i>Pale: leaning or early</span><span><i style="border:2px dashed var(--ink)"></i>Dashed: too close to call</span></div>
+    </section>
+    <section class="card" aria-labelledby="hFeed">
+      <h2 id="hFeed">Latest updates</h2>
+      <ul class="feed" id="feed"><li class="empty">Updates appear here as votes come in.</li></ul>
+    </section>
+  </div>
+
+  <div style="height:16px"></div>
+  <section class="card" aria-labelledby="hList" id="listCard">
+    <h2 id="hList">Every electorate</h2>
+    <div class="filters" role="group" aria-label="Filter electorates">
+      <button data-f="all" aria-pressed="true">All</button>
+      <button data-f="close" aria-pressed="false">Too close to call</button>
+      <button data-f="watch" aria-pressed="false">Seats to watch</button>
+      <button data-f="maori" aria-pressed="false">Māori electorates</button>
+      <label class="sr" for="search">Search electorates</label>
+      <input id="search" type="search" placeholder="Search, e.g. Kāpiti" autocomplete="off">
+    </div>
+    <div id="elist"><div class="empty">Waiting for results.</div></div>
+  </section>
+
+  <footer>
+    Unofficial tracker. Data: Electoral Commission (electionresults.govt.nz), checked about every 30 seconds.
+    Election-night results are preliminary and don't include special votes, which were about 21% of all votes in 2023. Official results are due on 27 November 2026.
+    <span id="credit"></span>
+  </footer>
+</div>
+
+<script>
+(() => {
+  // ---------- Settings you can change ----------
+  const CREDIT = 'Built by Basic Websites.';
+  const POLL_MS = 30000;
+  const WATCH = [
+    ['Wairarapa','National',1],['Mt Roskill','National',1],['Banks Peninsula','Labour',3],
+    ['Auckland Central','Green',4],['West Coast–Tasman','National',4],['Wellington North','Labour',4],
+    ['Hutt South','Labour',4],['Kapiti','National',5],['Maungakiekie','National',6],
+    ['Mt Albert','Labour',6],['East Cape','National',6],['Waitākere','Labour',7]
+  ];
+  const MAORI = ['te tai tokerau','tamaki makaurau','hauraki waikato','waiariki','ikaroa rawhiti','te tai hauauru','te tai tonga'];
+  // ---------------------------------------------
+
+  document.getElementById('credit').textContent = CREDIT;
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const norm = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+    .replace(/\bmount\b/g, 'mt').replace(/[^a-z]+/g, ' ').trim();
+  const fmt = (n) => Math.round(n).toLocaleString('en-NZ');
+  const isDemo = new URLSearchParams(location.search).has('demo');
+
+  // Party colours
+  const COLOURS = [
+    [/green/i,'#2e8b3d'],[/m[aā]ori/i,'#8a2432'],[/labour/i,'#d82a20'],[/nz first|new zealand first/i,'#3b3b3b'],
+    [/national/i,'#1f5fbf'],[/^act\b|act new zealand/i,'#f2b51c'],[/opportunit|\btop\b/i,'#13a89e']
+  ];
+  const SPARE = ['#7b4fb8','#c2185b','#5d7b2f','#8d6e63','#00838f','#6d6875'];
+  const colourCache = {};
+  function colour(name) {
+    if (!name) return '#9aa4b5';
+    if (colourCache[name]) return colourCache[name];
+    if (/independent/i.test(name)) return (colourCache[name] = '#8a94a6');
+    for (const [re, c] of COLOURS) if (re.test(name)) return (colourCache[name] = c);
+    let h = 0; for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    return (colourCache[name] = SPARE[h % SPARE.length]);
+  }
+  function textOn(hex) {
+    const n = parseInt(hex.slice(1), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+    return (0.299 * r + 0.587 * g + 0.114 * b) > 160 ? '#14213d' : '#ffffff';
+  }
+  function tint(hex, amt) {
+    const n = parseInt(hex.slice(1), 16);
+    const mix = (c) => Math.round(c + (255 - c) * amt);
+    return '#' + [mix(n >> 16), mix((n >> 8) & 255), mix(n & 255)].map((x) => x.toString(16).padStart(2, '0')).join('');
+  }
+  const shortParty = (n) => String(n || '').replace(/\s*\(.*?\)\s*/g, ' ').replace(/\bParty\b/g, '').replace(/\s+/g, ' ').trim() || n;
+
+  // Chamber order, left to right
+  function chamberRank(name) {
+    const order = [/green/i, /m[aā]ori/i, /labour/i, null, /nz first|new zealand first/i, /national/i, /^act\b|act new zealand/i];
+    for (let i = 0; i < order.length; i++) if (order[i] && order[i].test(name)) return i;
+    return 3;
+  }
+
+  // Blocs (saved on this device)
+  let blocs = {};
+  try { blocs = JSON.parse(localStorage.getItem('blocs2026') || '{}') || {}; } catch { blocs = {}; }
+  function defaultBloc(name) {
+    if (/national|^act\b|act new zealand|nz first|new zealand first/i.test(name)) return 'A';
+    if (/labour|green|m[aā]ori/i.test(name)) return 'B';
+    return '';
+  }
+  const blocOf = (name) => (name in blocs ? blocs[name] : defaultBloc(name));
+  function cycleBloc(name) {
+    const cur = blocOf(name);
+    blocs[name] = cur === 'A' ? 'B' : cur === 'B' ? '' : 'A';
+    try { localStorage.setItem('blocs2026', JSON.stringify(blocs)); } catch {}
+    render();
+  }
+
+  // Electorate status
+  function info(e) {
+    const c = e.candidates || [];
+    if (e.missing) return { st: 'wait', label: 'No data yet' };
+    if (!e.candidateTotal || !c.length || !c[0].votes) return { st: 'wait', label: 'Not yet counted' };
+    const lead = c[0], second = c[1] || { votes: 0, name: '', party: '' };
+    const mv = lead.votes - second.votes, mp = (mv / e.candidateTotal) * 100;
+    let st;
+    if (e.final || e.pctCounted >= 100) st = mv < 300 ? 'close' : 'safe';
+    else if (mp < 3) st = 'close';
+    else if (mp < 8 || e.pctCounted < 15) st = 'lean';
+    else st = 'safe';
+    const label = st === 'safe' ? 'Clear lead' : st === 'lean' ? 'Leaning' : 'Too close';
+    return { st, label, lead, second, mv, mp };
+  }
+  const tagClass = { safe: 't-safe', lean: 't-lean', close: 't-close', wait: 't-wait' };
+
+  const watchKeys = new Map(WATCH.map(([n, fav, m]) => [norm(n), { name: n, fav, margin: m }]));
+
+  // ---------- State ----------
+  let data = null, prev = null, feed = [], filter = 'all', search = '', firstLoad = true;
+
+  function hhmm(iso) {
+    const m = String(iso || '').match(/T(\d{2}):(\d{2})/);
+    if (!m) return '';
+    let h = +m[1]; const ap = h >= 12 ? 'pm' : 'am'; h = h % 12 || 12;
+    return `${h}:${m[2]}${ap}`;
+  }
+
+  // ---------- Rendering ----------
+  function render() {
+    if (!data) return;
+    const parties = data.parties || [];
+    const seated = parties.filter((p) => p.totalSeats > 0);
+    const total = seated.reduce((s, p) => s + p.totalSeats, 0);
+    const size = Math.max(total, 120);
+    const need = Math.floor(size / 2) + 1;
+    const pct = data.stats?.pctPlacesCounted || 0;
+    const counting = pct > 0 || parties.some((p) => p.votes > 0);
+
+    $('pct').textContent = `${pct.toFixed(1)}%`;
+    $('pbar').style.width = Math.min(100, pct) + '%';
+    $('updated').textContent = data.updated ? `Last updated ${hhmm(data.updated)}` : 'Waiting for first update';
+
+    // Chamber
+    const seatList = [];
+    seated.slice().sort((a, b) => chamberRank(a.name) - chamberRank(b.name) || b.totalSeats - a.totalSeats)
+      .forEach((p) => { for (let i = 0; i < p.totalSeats; i++) seatList.push(colour(p.name)); });
+    const rows = size > 130 ? 9 : 8, r0 = 92, r1 = 212, pts = [];
+    const radii = Array.from({ length: rows }, (_, i) => r0 + (r1 - r0) * i / (rows - 1));
+    const sumR = radii.reduce((a, b) => a + b, 0);
+    let left = size;
+    radii.forEach((R, i) => {
+      const n = i === rows - 1 ? left : Math.round(size * R / sumR);
+      left -= n;
+      for (let j = 0; j < n; j++) {
+        const a = Math.PI * (1 - (n === 1 ? 0.5 : j / (n - 1)));
+        pts.push({ x: 230 + R * Math.cos(a), y: 228 - R * Math.sin(a), a });
+      }
+    });
+    pts.sort((p, q) => q.a - p.a || p.y - q.y);
+    const dotR = size > 130 ? 5.2 : 5.8;
+    let svg = pts.map((p, i) => `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${dotR}" fill="${seatList[i] || 'var(--soft)'}" stroke="${seatList[i] ? 'none' : 'var(--line)'}"/>`).join('');
+    svg += `<line x1="230" y1="8" x2="230" y2="132" stroke="var(--ink)" stroke-width="1.5" stroke-dasharray="4 4"/>`;
+    svg += `<text x="230" y="228" text-anchor="middle" font-size="30" font-weight="700" fill="var(--ink)">${total ? total : 120}</text>`;
+    svg += `<text x="230" y="246" text-anchor="middle" font-size="12" fill="var(--muted)">seats</text>`;
+    $('chamber').innerHTML = svg;
+    $('majtext').innerHTML = total > 120
+      ? `${total} seats including ${total - 120} overhang, so <b>${need}</b> needed to govern`
+      : `<b>${need}</b> seats needed to govern`;
+
+    // Blocs
+    const bt = { A: 0, B: 0 };
+    seated.forEach((p) => { const b = blocOf(p.name); if (b) bt[b] += p.totalSeats; });
+    const names = { A: [], B: [] };
+    parties.forEach((p) => { const b = blocOf(p.name); if (b && (p.totalSeats > 0 || !counting)) names[b].push(shortParty(p.name)); });
+    $('blocs').innerHTML = ['A', 'B'].map((b) => `
+      <div class="bloc">
+        <div class="lab"><span><b>Bloc ${b}</b> <span class="note">${esc(names[b].join(', ') || 'no parties')}</span></span><b>${bt[b]} / ${need}</b></div>
+        <div class="track"><div class="fill" style="width:${(bt[b] / size * 100).toFixed(1)}%;background:var(--bloc${b})"></div>
+        <div class="line" style="left:${(need / size * 100).toFixed(1)}%"></div></div>
+      </div>`).join('');
+
+    // Headline
+    let h;
+    if (!counting) h = 'Voting closes at 7pm. Results appear here as they\'re counted.';
+    else if (bt.A >= need && bt.B < need) h = `Bloc A is on ${bt.A} seats, past the ${need} needed, with ${pct.toFixed(0)}% of voting places counted.`;
+    else if (bt.B >= need && bt.A < need) h = `Bloc B is on ${bt.B} seats, past the ${need} needed, with ${pct.toFixed(0)}% of voting places counted.`;
+    else h = `Neither bloc has the ${need} seats needed yet. Bloc A ${bt.A}, Bloc B ${bt.B}, with ${pct.toFixed(0)}% of voting places counted.`;
+    if (counting && pct < 100) h += ' Numbers will move as counting continues.';
+    $('headline').textContent = h;
+
+    // Party table
+    $('ptable').innerHTML = parties.length ? parties.filter((p) => p.votes > 0 || p.totalSeats > 0 || !counting).map((p) => {
+      let flag = '';
+      if (counting && p.pct >= 3 && p.pct < 5 && p.electorateSeats === 0) flag = ' <span class="tag t-close">Near 5%</span>';
+      else if (counting && p.pct >= 5 && p.pct < 6) flag = ' <span class="tag t-close">Just over 5%</span>';
+      else if (counting && p.pct < 5 && p.electorateSeats > 0) flag = ' <span class="tag t-lean">In via electorate</span>';
+      const b = blocOf(p.name);
+      return `<tr class="prow" data-p="${esc(p.name)}">
+        <td><span class="sw" style="background:${colour(p.name)}"></span>${esc(p.name)}${flag}</td>
+        <td>${p.pct.toFixed(1)}%</td><td>${p.electorateSeats}</td><td>${p.listSeats}</td><td><b>${p.totalSeats}</b></td>
+        <td><button class="blocbtn" data-p="${esc(p.name)}" aria-label="Change bloc for ${esc(p.name)}">${b ? 'Bloc ' + b : 'None'}</button></td></tr>`;
+    }).join('') : '<tr><td colspan="6" class="empty">Waiting for results.</td></tr>';
+
+    // Electorates
+    const els = (data.electorates || []).map((e) => ({ ...e, i: info(e), key: norm(e.name) }));
+
+    // Scoreboard
+    const cnt = { safe: 0, lean: 0, close: 0, wait: 0 };
+    els.forEach((e) => cnt[e.i.st]++);
+    $('score').innerHTML = `<span><b>${cnt.safe}</b> clear lead</span><span><b>${cnt.lean}</b> leaning</span><span><b>${cnt.close}</b> too close to call</span><span><b>${cnt.wait}</b> not yet counted</span>`;
+
+    // Seats to watch
+    const byKey = new Map(els.map((e) => [e.key, e]));
+    const watchRows = WATCH.map(([n, fav, m]) => {
+      const e = byKey.get(norm(n));
+      return { n, fav, m, e };
+    });
+    watchRows.sort((a, b) => {
+      const ra = a.e && a.e.i.lead ? a.e.i.mp : 999, rb = b.e && b.e.i.lead ? b.e.i.mp : 999;
+      return ra - rb || a.m - b.m;
+    });
+    $('watch').innerHTML = watchRows.map(({ n, fav, m, e }) => {
+      const pre = `Pre-election: ${esc(fav)} +${m}%`;
+      if (!e) return `<div class="watch-row"><span class="nm">${esc(n)}</span><span class="tag t-wait">Name not in feed</span><span class="pre">${pre}</span></div>`;
+      const i = e.i;
+      if (!i.lead) return `<div class="watch-row"><span class="nm">${esc(e.name)}</span><span class="tag t-wait">Not yet counted</span><span class="pre">${pre}</span></div>`;
+      const flip = !new RegExp(fav, 'i').test(i.lead.party);
+      return `<div class="watch-row">
+        <span class="nm"><span class="sw" style="background:${colour(i.lead.party)}"></span>${esc(e.name)}</span>
+        <span class="tag ${flip ? 't-flip' : tagClass[i.st]}">${flip ? 'Changing hands' : i.label}</span>
+        <span class="pre">${esc(shortParty(i.lead.party))} +${fmt(i.mv)} (${i.mp.toFixed(1)}%) · ${e.pctCounted.toFixed(0)}% counted<br>${pre}</span>
+      </div>`;
+    }).join('');
+
+    // Tiles
+    $('tiles').innerHTML = els.map((e) => {
+      const i = e.i;
+      let bg = 'var(--soft)', fg = 'var(--muted)', cls = '';
+      if (i.lead) {
+        const c = colour(i.lead.party);
+        if (i.st === 'safe') { bg = c; fg = textOn(c); }
+        else { bg = tint(c, 0.62); fg = '#14213d'; }
+        if (i.st === 'close') cls = ' close';
+      }
+      const sub = i.lead ? `${shortParty(i.lead.party)} +${fmt(i.mv)}` : 'Not counted';
+      return `<button class="tile${cls}" data-e="${esc(e.name)}" style="background:${bg};color:${fg}" title="${esc(e.name)}: ${esc(sub)}"><span class="tn">${esc(e.name)}</span><span>${esc(sub)}</span></button>`;
+    }).join('');
+
+    // Feed
+    $('feed').innerHTML = feed.length ? feed.slice(0, 12).map((f) => `<li><time>${esc(f.t)}</time>${f.html}</li>`).join('')
+      : '<li class="empty">Updates appear here as votes come in.</li>';
+
+    // List
+    const q = norm(search);
+    let list = els;
+    if (filter === 'close') list = list.filter((e) => e.i.st === 'close');
+    if (filter === 'watch') list = list.filter((e) => watchKeys.has(e.key));
+    if (filter === 'maori') list = list.filter((e) => MAORI.includes(e.key));
+    if (q) list = list.filter((e) => e.key.includes(q));
+    if (filter === 'close') list = list.slice().sort((a, b) => a.i.mp - b.i.mp);
+    $('elist').innerHTML = list.length ? list.map((e) => {
+      const i = e.i;
+      const leadTxt = i.lead
+        ? `<span class="sw" style="background:${colour(i.lead.party)}"></span><b>${esc(i.lead.name)}</b> (${esc(shortParty(i.lead.party))}) ${fmt(i.lead.votes)}<div class="second">${i.second && i.second.name ? `2nd: ${esc(i.second.name)} (${esc(shortParty(i.second.party))}) ${fmt(i.second.votes)}` : ''}</div>`
+        : '<span class="second">Not yet counted</span>';
+      return `<div class="erow" id="e-${e.no}">
+        <div class="c1"><div class="en">${esc(e.name)}</div><span class="tag ${tagClass[i.st]}">${i.label}</span></div>
+        <div class="c2">${leadTxt}</div>
+        <div class="c3">${i.lead ? `Lead ${fmt(i.mv)}<br><span class="second">${i.mp.toFixed(1)}%</span>` : ''}</div>
+        <div class="c4">${(e.pctCounted || 0).toFixed(0)}% counted<div class="bar"><div style="width:${Math.min(100, e.pctCounted || 0)}%"></div></div></div>
+      </div>`;
+    }).join('') : '<div class="empty">No electorates match.</div>';
+  }
+
+  // ---------- Updates feed ----------
+  function updateFeed(next) {
+    const now = hhmm(next.updated) || new Date().toLocaleTimeString('en-NZ', { hour: 'numeric', minute: '2-digit' }).replace(' ', '');
+    if (firstLoad) {
+      (next.electorates || []).filter((e) => e.candidateTotal > 0 && e.updated)
+        .sort((a, b) => String(b.updated).localeCompare(String(a.updated))).slice(0, 6)
+        .forEach((e) => {
+          const i = info(e);
+          if (i.lead) feed.push({ t: hhmm(e.updated), html: `<b>${esc(e.name)}</b>: ${esc(shortParty(i.lead.party))} leads by ${fmt(i.mv)} with ${e.pctCounted.toFixed(0)}% counted` });
+        });
+      return;
+    }
+    const before = new Map((prev?.electorates || []).map((e) => [e.no, e]));
+    const items = [];
+    (next.electorates || []).forEach((e) => {
+      const p = before.get(e.no);
+      if (!p || e.candidateTotal <= (p.candidateTotal || 0)) return;
+      const i = info(e), pi = info(p);
+      if (!i.lead) return;
+      if (pi.lead && pi.lead.party !== i.lead.party) {
+        items.push({ t: now, html: `<span class="tag t-flip">Lead change</span> <b>${esc(e.name)}</b>: ${esc(shortParty(i.lead.party))} now ahead by ${fmt(i.mv)}` });
+      } else {
+        const trend = pi.lead ? (i.mv > pi.mv ? 'lead grows to' : 'lead narrows to') : 'leads by';
+        items.push({ t: now, html: `<b>${esc(e.name)}</b>: ${esc(shortParty(i.lead.party))} ${trend} ${fmt(i.mv)}, ${e.pctCounted.toFixed(0)}% counted` });
+      }
+    });
+    feed = items.concat(feed).slice(0, 40);
+  }
+
+  // ---------- Data loading ----------
+  function setPill(kind, text) {
+    $('pill').className = 'pill' + (kind === 'live' ? ' live' : kind === 'err' ? ' err' : '');
+    $('pillText').textContent = text;
+  }
+
+  async function load() {
+    try {
+      let next;
+      if (isDemo) next = makeDemo();
+      else {
+        const res = await fetch('/api/results', { cache: 'no-store' });
+        next = await res.json();
+        if (!res.ok || !next.ok) throw new Error(next.error || 'Feed unavailable');
+      }
+      if (!data || next.updated !== data.updated || isDemo) {
+        updateFeed(next);
+        prev = data; data = next; firstLoad = false;
+        render();
+      }
+      const counting = (next.stats?.pctPlacesCounted || 0) > 0;
+      setPill('live', isDemo ? 'Demo' : counting ? 'Live' : 'Connected, waiting for 7pm');
+    } catch (err) {
+      setPill('err', 'Connection issue, retrying');
+      console.warn(err);
+    }
+  }
+
+  // ---------- Demo data (only with ?demo in the address) ----------
+  let demoStep = 0;
+  function makeDemo() {
+    $('demoBanner').hidden = false;
+    demoStep = Math.min(demoStep + 1, 10);
+    const f = demoStep / 10;
+    const P = [['Alpha Party', 36, 40, 44], ['Beta Party', 29, 26, 37], ['Gamma Party', 10, 3, 13], ['Delta Party', 8, 1, 10], ['Epsilon Party', 6, 0, 8], ['Zeta Party', 4.2, 1, 5], ['Eta Party', 3, 0, 0]];
+    const parties = P.map(([name, v, el, ts], k) => ({ id: String(k), name, votes: Math.round(v * 20000 * f), pct: v + Math.sin(k + demoStep) * (1 - f), electorateSeats: el, listSeats: Math.max(0, ts - el), totalSeats: ts }));
+    const W = WATCH.map((w) => w[0]);
+    const electorates = Array.from({ length: 71 }, (_, k) => {
+      const name = k < W.length ? W[k] : k >= 64 ? ['Te Tai Tokerau', 'Tāmaki Makaurau', 'Hauraki-Waikato', 'Waiariki', 'Ikaroa-Rāwhiti', 'Te Tai Hauāuru', 'Te Tai Tonga'][k - 64] : `Sample electorate ${k + 1}`;
+      const counted = Math.min(100, f * 100 * (0.7 + ((k * 7) % 6) / 10));
+      const base = 8000 * counted / 100, swing = Math.sin(k * 1.7) * 0.12;
+      const a = Math.round(base * (0.45 + swing)), b = Math.round(base * (0.42 - swing)), c = Math.round(base * 0.13);
+      const pn = k >= 64 ? ['Zeta Party', 'Beta Party'] : ['Alpha Party', 'Beta Party'];
+      return { no: k + 1, name, final: counted >= 100, updated: `2026-11-07T2${Math.min(3, Math.floor(demoStep / 3))}:${String((k * 7) % 60).padStart(2, '0')}:00`, pctCounted: counted, votesCast: a + b + c,
+        candidates: [{ name: 'SAMPLE, Candidate A', party: pn[0], votes: a }, { name: 'SAMPLE, Candidate B', party: pn[1], votes: b }, { name: 'SAMPLE, Candidate C', party: 'Gamma Party', votes: c }].sort((x, y) => y.votes - x.votes),
+        candidateTotal: a + b + c };
+    });
+    return { ok: true, updated: `2026-11-07T2${Math.floor(demoStep / 4)}:${String(demoStep * 5).padStart(2, '0')}:00`, stats: { pctPlacesCounted: f * 100 }, parties, electorates };
+  }
+
+  // ---------- Events ----------
+  document.addEventListener('click', (ev) => {
+    const bb = ev.target.closest('.blocbtn'); if (bb) { ev.stopPropagation(); cycleBloc(bb.dataset.p); return; }
+    const pr = ev.target.closest('tr.prow'); if (pr) { cycleBloc(pr.dataset.p); return; }
+    const t = ev.target.closest('.tile');
+    if (t) {
+      filter = 'all'; search = t.dataset.e; $('search').value = search;
+      document.querySelectorAll('.filters button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.f === 'all'));
+      render();
+      $('listCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+    const fb = ev.target.closest('.filters button');
+    if (fb) {
+      filter = fb.dataset.f;
+      document.querySelectorAll('.filters button').forEach((b) => b.setAttribute('aria-pressed', b === fb));
+      render();
+    }
+  });
+  $('search').addEventListener('input', (e) => { search = e.target.value; render(); });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) load(); });
+
+  load();
+  setInterval(load, isDemo ? 4000 : POLL_MS);
+})();
+</script>
+</body>
+</html>
