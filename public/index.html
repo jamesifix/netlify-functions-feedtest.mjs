@@ -685,7 +685,7 @@ Ferris|Tākuta|Independent|Te Tai Tonga`.split('\n').map((l) => { const [s, f, p
         });
       return;
     }
-    const before = new Map((prev?.electorates || []).map((e) => [e.no, e]));
+    const before = new Map((data?.electorates || []).map((e) => [e.no, e]));
     const items = [];
     (next.electorates || []).forEach((e) => {
       const p = before.get(e.no);
@@ -695,7 +695,7 @@ Ferris|Tākuta|Independent|Te Tai Tonga`.split('\n').map((l) => { const [s, f, p
       if (pi.lead && pi.lead.party !== i.lead.party) {
         items.push({ t: now, html: `<span class="tag t-flip">Lead change</span> <b>${esc(e.name)}</b>: ${esc(shortParty(i.lead.party))} now ahead by ${fmt(i.mv)}` });
       } else {
-        const trend = pi.lead ? (i.mv > pi.mv ? 'lead grows to' : 'lead narrows to') : 'leads by';
+        const trend = pi.lead ? (i.mv > pi.mv ? 'lead grows to' : i.mv < pi.mv ? 'lead narrows to' : 'still leads by') : 'leads by';
         items.push({ t: now, html: `<b>${esc(e.name)}</b>: ${esc(shortParty(i.lead.party))} ${trend} ${fmt(i.mv)}, ${e.pctCounted.toFixed(0)}% counted` });
       }
     });
@@ -717,7 +717,8 @@ Ferris|Tākuta|Independent|Te Tai Tonga`.split('\n').map((l) => { const [s, f, p
         next = await res.json();
         if (!res.ok || !next.ok) throw new Error(next.error || 'Feed unavailable');
       }
-      if (!data || next.updated !== data.updated || isDemo) {
+      const sig = (d) => [d.updated, d.stats?.pctPlacesCounted, d.stats?.votesCast, (d.electorates || []).reduce((s, e) => s + (e.candidateTotal || 0) + (e.pctCounted || 0), 0), (d.parties || []).reduce((s, p) => s + p.votes + p.totalSeats, 0)].join('|');
+      if (!data || sig(next) !== sig(data) || isDemo) {
         updateFeed(next);
         prev = data; data = next; firstLoad = false;
         render();
