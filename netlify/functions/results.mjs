@@ -130,7 +130,7 @@ function parseElectorate(xml, e, ref) {
     updated: attr(rootAttrs, "updated"),
     pctCounted: num(tag(stats, "percent_voting_places_counted")),
     votesCast: num(tag(stats, "total_votes_cast")),
-    candidates: cands.slice(0, 4),
+    candidates: cands.slice(0, 8),
     candidateTotal: cands.reduce((s, c) => s + c.votes, 0),
   };
 }
