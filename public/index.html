@@ -97,6 +97,16 @@ tr.prow:hover td{background:var(--soft)}
 footer{color:var(--muted);font-size:13px;line-height:1.6;margin:8px 0 30px}
 footer a{color:inherit}
 .demo-banner{background:var(--warn-bg);color:var(--warn);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-weight:700;font-size:14px}
+.path{padding:10px 0;border-top:1px solid var(--line)}
+.path .ph{display:flex;justify-content:space-between;gap:10px;font-size:15px}
+.path .ph b{white-space:nowrap}
+.path .track{position:relative;height:10px;background:var(--soft);border-radius:5px;margin:6px 0 4px;display:flex;overflow:hidden}
+.path .mline{position:absolute;top:0;width:2px;height:10px;background:var(--ink)}
+.th{padding:10px 0;border-top:1px solid var(--line);font-size:15px}
+.th .track{position:relative;height:10px;background:var(--soft);border-radius:5px;margin-top:6px}
+.th .five{position:absolute;top:-4px;left:50%;width:2px;height:18px;background:var(--ink)}
+.mprow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;padding:9px 0;border-top:1px solid var(--line);font-size:14px}
+.mprow .who{font-weight:700}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 </style>
 </head>
@@ -135,6 +145,30 @@ footer a{color:inherit}
     </section>
   </div>
 
+  <div style="height:16px"></div>
+  <div class="grid">
+    <section class="card" aria-labelledby="hPaths">
+      <h2 id="hPaths">Coalition paths</h2>
+      <div class="note">Live seat totals for possible governments, compared with the seats needed. Notes show what parties said before the election.</div>
+      <div id="paths"></div>
+      <p class="note" style="margin:10px 0 0">Positions as reported by 1News and The Spinoff, 30 October 2026. Parties can change their positions after an election.</p>
+    </section>
+    <section class="card" aria-labelledby="hThresh">
+      <h2 id="hThresh">Threshold watch</h2>
+      <div class="note">Parties near 5% of the party vote. Below 5% with no electorate win means no seats.</div>
+      <div id="thresh"></div>
+    </section>
+  </div>
+  <div style="height:16px"></div>
+  <section class="card" aria-labelledby="hMPs">
+    <h2 id="hMPs">Sitting MPs in electorate races</h2>
+    <div class="note">MPs from the last Parliament who are standing in an electorate, matched by name. Trailing MPs are shown first.</div>
+    <div class="filters" role="group" aria-label="Filter sitting MPs" style="margin-top:8px">
+      <button data-m="risk" aria-pressed="true">Behind or close</button>
+      <button data-m="all" aria-pressed="false">All sitting MPs</button>
+    </div>
+    <div id="mps"></div>
+  </section>
   <div style="height:16px"></div>
   <div class="score" id="score" aria-label="Electorate summary"></div>
 
@@ -194,6 +228,137 @@ footer a{color:inherit}
     ['Hutt South','Labour',4],['Kapiti','National',5],['Maungakiekie','National',6],
     ['Mt Albert','Labour',6],['East Cape','National',6],['Waitākere','Labour',7]
   ];
+  const RX = { nat: /national/i, act: /^act\b|act new zealand/i, nzf: /nz first|new zealand first/i, lab: /labour/i, grn: /green/i, tpm: /m[aā]ori/i, opp: /opportunit/i };
+  const PATHS = [
+    { parts: ['nat', 'act', 'nzf'], note: 'The current government.' },
+    { parts: ['lab', 'grn', 'tpm'], note: '' },
+    { parts: ['lab', 'grn', 'opp'], note: 'Labour and the Greens said they could work with Opportunity.' },
+    { parts: ['lab', 'grn', 'opp', 'tpm'], note: '' },
+    { parts: ['nat', 'act', 'nzf', 'opp'], note: 'National and NZ First ruled out working with Opportunity.' }
+  ];
+  // Sitting MPs at dissolution (54th Parliament): Surname|First name|Party|Electorate held ("" = list MP)
+  const MPS = `Luxon|Christopher|National|Botany
+Willis|Nicola|National|
+Bishop|Chris|National|Hutt South
+Brown|Simeon|National|Pakuranga
+Stanford|Erica|National|East Coast Bays
+Goldsmith|Paul|National|
+Upston|Louise|National|Taupō
+Reti|Shane|National|Whangārei
+Mitchell|Mark|National|Whangaparāoa
+McClay|Todd|National|Rotorua
+Potaka|Tama|National|Hamilton West
+Doocey|Matt|National|Waimakariri
+Watts|Simon|National|North Shore
+Penk|Chris|National|Kaipara ki Mahurangi
+Simmonds|Penny|National|Invercargill
+Grigg|Nicola|National|Selwyn
+Meager|James|National|Rangitata
+Simpson|Scott|National|Coromandel
+Brownlee|Gerry|National|
+Kuriger|Barbara|National|Taranaki-King Country
+Pugh|Maureen|National|West Coast-Tasman
+Smith|Stuart|National|Kaikōura
+Redmayne|Suze|National|Rangitīkei
+Lee|Melissa|National|
+Bayly|Andrew|National|Port Waikato
+Lu|Nancy|National|
+Nimon|Katie|National|Napier
+Wedd|Catherine|National|Tukituki
+Garcia|Paulo|National|New Lynn
+Weenink|Vanessa|National|Banks Peninsula
+Nakhle|Rima|National|Takanini
+Kirkpatrick|Dana|National|East Coast
+Bates|Carl|National|Whanganui
+Cheung|Carlos|National|Mt Roskill
+Mooney|Joseph|National|Southland
+Uffindell|Sam|National|Tauranga
+van de Molen|Tim|National|Waikato
+Anderson|Miles|National|Waitaki
+Bidois|Dan|National|Northcote
+Butterick|Mike|National|Wairarapa
+Brewer|Cameron|National|Upper Harbour
+Campbell|Hamish|National|Ilam
+Costley|Tim|National|Ōtaki
+Fleming|Greg|National|Maungakiekie
+Hamilton|Ryan|National|Hamilton East
+MacLeod|David|National|New Plymouth
+McCallum|Grant|National|Northland
+Rutherford|Tom|National|Bay of Plenty
+Seymour|David|ACT|Epsom
+van Velden|Brooke|ACT|Tāmaki
+McKee|Nicole|ACT|
+Hoggard|Andrew|ACT|
+Chhour|Karen|ACT|
+Court|Simon|ACT|
+Stephenson|Todd|ACT|
+Cameron|Mark|ACT|
+Parmar|Parmjeet|ACT|
+McClure|Laura|ACT|
+Luxton|Cameron|ACT|
+Peters|Winston|NZ First|
+Jones|Shane|NZ First|
+Costello|Casey|NZ First|
+Patterson|Mark|NZ First|
+Marcroft|Jenny|NZ First|
+Arbuckle|Jamie|NZ First|
+Foster|Andy|NZ First|
+Wilson|David|NZ First|
+Hipkins|Chris|Labour|Remutaka
+Sepuloni|Carmel|Labour|Kelston
+Edmonds|Barbara|Labour|Mana
+Woods|Megan|Labour|Wigram
+Jackson|Willie|Labour|
+Verrall|Ayesha|Labour|
+McAnulty|Kieran|Labour|
+Prime|Willow-Jean|Labour|
+Andersen|Ginny|Labour|
+Tinetti|Jan|Labour|
+Utikere|Tangi|Labour|Palmerston North
+Radhakrishnan|Priyanca|Labour|
+Luxton|Jo|Labour|
+Webb|Duncan|Labour|Christchurch Central
+Russell|Deborah|Labour|
+Brooking|Rachel|Labour|Dunedin
+O'Connor|Damien|Labour|
+Belich|Camilla|Labour|
+Williams|Arena|Labour|Manurewa
+Twyford|Phil|Labour|Te Atatū
+O'Connor|Greg|Labour|Ōhāriu
+Salesa|Jenny|Labour|Panmure-Ōtāhuhu
+Boyack|Rachel|Labour|Nelson
+White|Helen|Labour|Mt Albert
+Leary|Ingrid|Labour|Taieri
+Sosene|Lemauga Lydia|Labour|Māngere
+Davidson|Reuben|Labour|Christchurch East
+Tangaere-Manuel|Cushla|Labour|Ikaroa-Rāwhiti
+McLellan|Tracey|Labour|
+Halbert|Shanan|Labour|
+Bennett|Glen|Labour|
+Walters|Vanushi|Labour|
+Dansey|Georgie|Labour|
+Rosewarne|Dan|Labour|
+Davidson|Marama|Green|
+Swarbrick|Chlöe|Green|Auckland Central
+Genter|Julie Anne|Green|Rongotai
+Tuiono|Teanau|Green|
+Pham|Lan|Green|
+Menéndez March|Ricardo|Green|
+Abel|Steve|Green|
+Lyndon|Hūhana|Green|
+Willis|Scott|Green|
+Carter|Kahurangi|Green|
+Wade-Brown|Celia|Green|
+Xu-Nan|Lawrence|Green|
+Hernandez|Francisco|Green|
+Davidson|Mike|Green|
+Paul|Tamatha|Green|Wellington Central
+Ngarewa-Packer|Debbie|Te Pāti Māori|Te Tai Hauāuru
+Waititi|Rawiri|Te Pāti Māori|Waiariki
+Maipi-Clarke|Hana-Rawhiti|Te Pāti Māori|Hauraki-Waikato
+Kapa-Kingi|Mariameno|Te Pāti Māori|Te Tai Tokerau
+Kaipara|Oriini|Te Pāti Māori|Tāmaki Makaurau
+Ferris|Tākuta|Independent|Te Tai Tonga`.split('\n').map((l) => { const [s, f, p, seat] = l.split('|'); return { s, f, p, seat }; });
   const MAORI = ['te tai tokerau','tamaki makaurau','hauraki waikato','waiariki','ikaroa rawhiti','te tai hauauru','te tai tonga'];
   // ---------------------------------------------
 
@@ -271,10 +436,28 @@ footer a{color:inherit}
   }
   const tagClass = { safe: 't-safe', lean: 't-lean', close: 't-close', wait: 't-wait' };
 
+  const mpIndex = new Map();
+  MPS.forEach((m) => { const k = norm(m.s); if (!mpIndex.has(k)) mpIndex.set(k, []); mpIndex.get(k).push(m); });
+  function splitName(n) {
+    const [sur, ...rest] = String(n || '').split(',');
+    return { sur: norm(sur), given: norm(rest.join(' ')) };
+  }
+  function matchMP(candName) {
+    const { sur, given } = splitName(candName);
+    const list = mpIndex.get(sur);
+    if (!list || !given) return null;
+    return list.find((m) => { const f = norm(m.f); return given.startsWith(f.slice(0, 3)) || f.startsWith(given.slice(0, 3)); }) || null;
+  }
+  function displayName(n) {
+    const parts = String(n || '').split(',');
+    if (parts.length < 2) return n;
+    const sur = parts[0].trim().toLowerCase().replace(/(^|[\s\-'’])(\p{L})/gu, (m0, a, b) => a + b.toUpperCase()).replace(/\bMc(\p{L})/gu, (m0, a) => 'Mc' + a.toUpperCase()).replace(/\b(Van|De)\b/g, (w) => w.toLowerCase());
+    return parts.slice(1).join(',').trim() + ' ' + sur;
+  }
   const watchKeys = new Map(WATCH.map(([n, fav, m]) => [norm(n), { name: n, fav, margin: m }]));
 
   // ---------- State ----------
-  let data = null, prev = null, feed = [], filter = 'all', search = '', firstLoad = true;
+  let data = null, prev = null, feed = [], filter = 'all', search = '', firstLoad = true, mpView = 'risk';
 
   function hhmm(iso) {
     const m = String(iso || '').match(/T(\d{2}):(\d{2})/);
@@ -346,6 +529,32 @@ footer a{color:inherit}
     if (counting && pct < 100) h += ' Numbers will move as counting continues.';
     $('headline').textContent = h;
 
+    // Coalition paths
+    const findParty = (key) => parties.find((p) => RX[key].test(p.name));
+    $('paths').innerHTML = PATHS.map((path) => {
+      const members = path.parts.map(findParty).filter(Boolean);
+      const seats = members.reduce((s, p) => s + p.totalSeats, 0);
+      const label = members.map((p) => shortParty(p.name)).join(' + ') || path.parts.join(' + ');
+      let status = '<span class="tag t-wait">Waiting</span>';
+      if (counting) status = seats >= need ? '<span class="tag t-safe">Majority</span>' : `<span class="tag t-lean">Short by ${need - seats}</span>`;
+      const segs = members.map((p) => `<div style="width:${(p.totalSeats / size * 100).toFixed(2)}%;background:${colour(p.name)}"></div>`).join('');
+      return `<div class="path"><div class="ph"><span>${esc(label)}</span><b>${seats} / ${need}</b></div>
+        <div class="track">${segs}<div class="mline" style="left:${(need / size * 100).toFixed(1)}%"></div></div>
+        <div class="note">${status} ${esc(path.note)}</div></div>`;
+    }).join('');
+
+    // Threshold watch
+    const near = parties.filter((p) => counting ? (p.pct >= 2.5 && p.pct < 8) || (p.pct < 5 && p.electorateSeats > 0) : RX.opp.test(p.name));
+    $('thresh').innerHTML = !counting
+      ? '<div class="empty">Shows any party close to 5% once counting starts.</div>'
+      : near.length ? near.sort((a, b) => b.pct - a.pct).map((p) => {
+        const verdict = p.pct >= 5 ? (p.pct < 5.5 ? 'Just over 5%' : 'Over 5%') : p.electorateSeats > 0 ? 'Under 5%, in via electorate' : 'Under 5%, no seats';
+        const cls = p.pct >= 5.5 || p.electorateSeats > 0 ? 't-safe' : p.pct >= 5 ? 't-close' : 't-flip';
+        return `<div class="th"><div class="ph" style="display:flex;justify-content:space-between;gap:10px"><span><span class="sw" style="background:${colour(p.name)}"></span>${esc(p.name)}</span><b>${p.pct.toFixed(2)}%</b></div>
+          <div class="track"><div style="height:10px;border-radius:5px;width:${Math.min(100, p.pct * 10).toFixed(1)}%;background:${colour(p.name)}"></div><div class="five"></div></div>
+          <div class="note" style="margin-top:4px"><span class="tag ${cls}">${verdict}</span> ${p.totalSeats} seats · line marks 5%</div></div>`;
+      }).join('') : '<div class="empty">No parties near 5% right now.</div>';
+
     // Party table
     $('ptable').innerHTML = parties.length ? parties.filter((p) => p.votes > 0 || p.totalSeats > 0 || !counting).map((p) => {
       let flag = '';
@@ -361,6 +570,40 @@ footer a{color:inherit}
 
     // Electorates
     const els = (data.electorates || []).map((e) => ({ ...e, i: info(e), key: norm(e.name) }));
+
+    // Sitting MPs
+    const mpRows = [];
+    els.forEach((e) => {
+      (e.candidates || []).forEach((c, idx) => {
+        const mp = matchMP(c.name);
+        if (!mp) return;
+        const i = e.i, counted = !!i.lead;
+        let state = 'wait', text = 'Not yet counted', gap = 999;
+        if (counted && idx === 0) {
+          const r = e.candidates[1];
+          gap = i.mp;
+          state = i.mp < 3 ? 'close' : 'ahead';
+          text = `Leads ${r ? esc(displayName(r.name)) + ' (' + esc(shortParty(r.party)) + ')' : ''} by ${fmt(i.mv)} (${i.mp.toFixed(1)}%)`;
+        } else if (counted) {
+          const behind = i.lead.votes - c.votes;
+          gap = -(behind / (e.candidateTotal || 1)) * 100;
+          state = 'behind';
+          text = `Trails ${esc(displayName(i.lead.name))} (${esc(shortParty(i.lead.party))}) by ${fmt(behind)} (${(-gap).toFixed(1)}%)`;
+        }
+        mpRows.push({ e, c, mp, state, text, gap });
+      });
+    });
+    mpRows.sort((a, b) => a.gap - b.gap);
+    const shown = mpView === 'all' ? mpRows : mpRows.filter((r) => r.state === 'behind' || r.state === 'close');
+    const stTag = { behind: '<span class="tag t-flip">Behind</span>', close: '<span class="tag t-close">Too close</span>', ahead: '<span class="tag t-safe">Ahead</span>', wait: '<span class="tag t-wait">Not yet counted</span>' };
+    $('mps').innerHTML = !mpRows.length ? '<div class="empty">Sitting MPs appear here once candidate data loads.</div>'
+      : !counting ? `<div class="empty">${mpRows.length} sitting MPs are standing in electorates. Their status appears from 7pm.</div>`
+      : shown.length ? shown.map((r) => `<div class="mprow">
+          <span class="who"><span class="sw" style="background:${colour(r.c.party)}"></span>${esc(displayName(r.c.name))} <span class="note">(${esc(shortParty(r.c.party))}) · ${esc(r.e.name)}</span></span>
+          ${stTag[r.state]}
+          <span class="note">${r.text} · ${r.e.pctCounted.toFixed(0)}% counted${r.mp.seat ? ' · Previously MP for ' + esc(r.mp.seat) : ' · Previously a list MP'}</span>
+        </div>`).join('')
+      : '<div class="empty">No sitting MPs are behind or in a close race right now.</div>';
 
     // Scoreboard
     const cnt = { safe: 0, lean: 0, close: 0, wait: 0 };
@@ -516,15 +759,22 @@ footer a{color:inherit}
     const t = ev.target.closest('.tile');
     if (t) {
       filter = 'all'; search = t.dataset.e; $('search').value = search;
-      document.querySelectorAll('.filters button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.f === 'all'));
+      document.querySelectorAll('.filters button[data-f]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.f === 'all'));
       render();
       $('listCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
       return;
     }
-    const fb = ev.target.closest('.filters button');
+    const mb = ev.target.closest('button[data-m]');
+    if (mb) {
+      mpView = mb.dataset.m;
+      document.querySelectorAll('button[data-m]').forEach((b) => b.setAttribute('aria-pressed', b === mb));
+      render();
+      return;
+    }
+    const fb = ev.target.closest('.filters button[data-f]');
     if (fb) {
       filter = fb.dataset.f;
-      document.querySelectorAll('.filters button').forEach((b) => b.setAttribute('aria-pressed', b === fb));
+      document.querySelectorAll('.filters button[data-f]').forEach((b) => b.setAttribute('aria-pressed', b === fb));
       render();
     }
   });
